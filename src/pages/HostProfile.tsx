@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { api } from '@/lib/api-client';
 import type { Host, ServiceType, Review } from '@shared/types';
@@ -34,7 +34,7 @@ export function HostProfile() {
     queryFn: () => api<Host>(`/api/hosts/${id}`),
     enabled: !!id
   });
-  const { data: reviewsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useQuery({
+  const { data: reviewsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['reviews', id],
     queryFn: ({ pageParam = null }) => api<{ items: Review[], next: string | null }>(`/api/reviews?hostId=${id}&cursor=${pageParam}`),
     getNextPageParam: (lastPage) => lastPage.next,
