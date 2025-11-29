@@ -1,148 +1,120 @@
-// Home page of the app, Currently a demo page for demonstration.
-// Please rewrite this file to implement your own logic. Do not delete it to use some other file as homepage. Simply replace the entire contents of this file.
-import { useEffect } from 'react'
-import { Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { Toaster, toast } from '@/components/ui/sonner'
-import { create } from 'zustand'
-import { useShallow } from 'zustand/react/shallow'
-// import { AppLayout } from '@/components/layout/AppLayout'
-
-// Timer store: independent slice with a clear, minimal API, for demonstration
-type TimerState = {
-  isRunning: boolean;
-  elapsedMs: number;
-  start: () => void;
-  pause: () => void;
-  reset: () => void;
-  tick: (deltaMs: number) => void;
-}
-
-const useTimerStore = create<TimerState>((set) => ({
-  isRunning: false,
-  elapsedMs: 0,
-  start: () => set({ isRunning: true }),
-  pause: () => set({ isRunning: false }),
-  reset: () => set({ elapsedMs: 0, isRunning: false }),
-  tick: (deltaMs) => set((s) => ({ elapsedMs: s.elapsedMs + deltaMs })),
-}))
-
-// Counter store: separate slice to showcase multiple stores without coupling
-type CounterState = {
-  count: number;
-  inc: () => void;
-  reset: () => void;
-}
-
-const useCounterStore = create<CounterState>((set) => ({
-  count: 0,
-  inc: () => set((s) => ({ count: s.count + 1 })),
-  reset: () => set({ count: 0 }),
-}))
-
-function formatDuration(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
-export function HomePage() {
-  // Select only what is needed to avoid unnecessary re-renders
-  const { isRunning, elapsedMs } = useTimerStore(
-    useShallow((s) => ({ isRunning: s.isRunning, elapsedMs: s.elapsedMs })),
-  )
-  const start = useTimerStore((s) => s.start)
-  const pause = useTimerStore((s) => s.pause)
-  const resetTimer = useTimerStore((s) => s.reset)
-  const count = useCounterStore((s) => s.count)
-  const inc = useCounterStore((s) => s.inc)
-  const resetCount = useCounterStore((s) => s.reset)
-
-  // Drive the timer only while running; avoid update-depth issues with a scoped RAF
-  useEffect(() => {
-    if (!isRunning) return
-    let raf = 0
-    let last = performance.now()
-    const loop = () => {
-      const now = performance.now()
-      const delta = now - last
-      last = now
-      // Read store API directly to keep effect deps minimal and stable
-      useTimerStore.getState().tick(delta)
-      raf = requestAnimationFrame(loop)
-    }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
-  }, [isRunning])
-
-  const onPleaseWait = () => {
-    inc()
-    if (!isRunning) {
-      start()
-      toast.success('Building your app…', {
-        description: 'Hang tight, we\'re setting everything up.',
-      })
-    } else {
-      pause()
-      toast.info('Taking a short pause', {
-        description: 'We\'ll continue shortly.',
-      })
-    }
+import React from 'react';
+import { PawPrint, MapPin, Calendar, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
+import type { HostPreview } from '@shared/types';
+import { HostCard, HostCardSkeleton } from '@/components/HostCard';
+import { DEMO_USER_ID } from '@shared/mock-data';
+function PawIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+      <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="11" cy="4" r="2" />
+        <circle cx="18" cy="8" r="2" />
+        <circle cx="20" cy="16" r="2" />
+        <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-7 0V15a5 5 0 0 1 5-5z" />
+        <path d="M6 14.32V15a3.5 3.5 0 0 0 7 0v-2.5" />
+        <path d="M14.5 18.5a3.5 3.5 0 0 0 7 0v-3.5" />
+      </svg>
+    )
   }
-
-  const formatted = formatDuration(elapsedMs)
-
+export function HomePage() {
+  const navigate = useNavigate();
+  const [location, setLocation] = React.useState('Quebec');
+  const { data: hostsResponse, isLoading } = useQuery({
+    queryKey: ['hosts', 'featured'],
+    queryFn: () => api<{ items: HostPreview[] }>('/api/hosts?limit=4'),
+  });
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate(`/search?location=${encodeURIComponent(location)}`);
+  };
   return (
-    // <AppLayout> Uncomment this if you want to use the sidebar
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 overflow-hidden relative">
-        <ThemeToggle />
-        <div className="absolute inset-0 bg-gradient-rainbow opacity-10 dark:opacity-20 pointer-events-none" />
-        <div className="text-center space-y-8 relative z-10 animate-fade-in">
-          <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-primary floating">
-              <Sparkles className="w-8 h-8 text-white rotating" />
+    <AppLayout container={false}>
+      <div className="relative">
+        <ThemeToggle className="absolute top-4 right-4 z-20" />
+        <header className="relative bg-blue-50 dark:bg-dogroom-ink/30 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative z-10 py-20 md:py-32 lg:py-40">
+              <div className="text-center">
+                <h1 className="text-4xl md:text-6xl font-display font-bold text-dogroom-ink dark:text-white text-balance">
+                  Find the perfect dog sitter, <br />
+                  <span className="text-dogroom-primary">right next door.</span>
+                </h1>
+                <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+                  Connect with trusted, local dog lovers who can't wait to host your best friend.
+                </p>
+                <form
+                  onSubmit={handleSearch}
+                  className="mt-8 max-w-xl mx-auto bg-white dark:bg-background shadow-lg rounded-full p-2 flex items-center gap-2 border"
+                >
+                  <MapPin className="w-5 h-5 text-muted-foreground ml-4" />
+                  <Input
+                    type="text"
+                    placeholder="Enter a city, e.g., Quebec"
+                    className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 !p-0"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                  <Button type="submit" size="icon" className="rounded-full w-12 h-12 bg-dogroom-primary hover:bg-dogroom-primary/90">
+                    <Search className="w-6 h-6" />
+                  </Button>
+                </form>
+              </div>
             </div>
           </div>
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-balance leading-tight">
-            Creating your <span className="text-gradient">app</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto text-pretty">
-            Your application would be ready soon.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button 
-              size="lg"
-              onClick={onPleaseWait}
-              className="btn-gradient px-8 py-4 text-lg font-semibold hover:-translate-y-0.5 transition-all duration-200"
-              aria-live="polite"
-            >
-              Please Wait
-            </Button>
+          <div className="absolute inset-0 z-0 opacity-20">
+            <PawIcon className="absolute -left-16 -top-16 w-64 h-64 text-dogroom-primary/30 transform-gpu rotate-12" />
+            <PawIcon className="absolute -right-20 bottom-0 w-80 h-80 text-dogroom-accent/30 transform-gpu -rotate-12" />
           </div>
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-            <div>
-              Time elapsed: <span className="font-medium tabular-nums text-foreground">{formatted}</span>
+        </header>
+        <main>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="py-16 md:py-24">
+              <div className="text-center space-y-3">
+                <h2 className="text-3xl md:text-4xl font-bold font-display">Top Rated Hosts</h2>
+                <p className="text-muted-foreground max-w-xl mx-auto">
+                  Meet some of our most loved and trusted dog sitters in your area.
+                </p>
+              </div>
+              <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                {isLoading
+                  ? Array.from({ length: 4 }).map((_, i) => <HostCardSkeleton key={i} />)
+                  : hostsResponse?.items.map((host) => <HostCard key={host.id} host={host} />)}
+              </div>
+              <div className="mt-12 text-center">
+                <Button size="lg" asChild className="bg-dogroom-accent hover:bg-dogroom-accent/90 text-dogroom-ink font-bold">
+                  <Link to="/search">Explore All Sitters</Link>
+                </Button>
+              </div>
             </div>
-            <div>
-              Coins: <span className="font-medium tabular-nums text-foreground">{count}</span>
+          </div>
+        </main>
+        <footer className="bg-muted/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-muted-foreground text-sm">
+            <p>&copy; {new Date().getFullYear()} DogRoom. Built with ❤️ at Cloudflare.</p>
+            <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded-md inline-block text-xs">
+              <p className="font-semibold">Demo Info:</p>
+              <p>You are logged in as Alex Doe. User ID: <code className="font-mono bg-yellow-200 px-1 rounded">{DEMO_USER_ID}</code></p>
             </div>
           </div>
-          <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => { resetTimer(); resetCount(); toast('Reset complete') }}>
-              Reset
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => { inc(); toast('Coin added') }}>
-              Add Coin
-            </Button>
-          </div>
-        </div>
-        <footer className="absolute bottom-8 text-center text-muted-foreground/80">
-          <p>Powered by Cloudflare</p>
         </footer>
-        <Toaster richColors closeButton />
       </div>
-    // </AppLayout> Uncomment this if you want to use the sidebar
-  )
+    </AppLayout>
+  );
 }

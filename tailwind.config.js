@@ -91,6 +91,9 @@ export default {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+            'dogroom-primary': '#21AFFF',
+            'dogroom-accent': '#FFB547',
+            'dogroom-ink': '#0F1724',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			muted: {
