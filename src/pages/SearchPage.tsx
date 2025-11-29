@@ -34,10 +34,6 @@ export function SearchPage() {
     setFilters(newFilters);
     track({ name: 'search_filter_apply', params: { filters: newFilters } });
   };
-  const handleClearFilters = () => {
-    setFilters({});
-    setFilterSheetOpen(false);
-  }
   const handleMarkerClick = (hostId: string) => {
     setSelectedHostId(hostId);
     track({ name: 'host_select', params: { host_id: hostId, source: 'map' } });
@@ -68,7 +64,12 @@ export function SearchPage() {
                     <Loader2 className="w-8 h-8 animate-spin text-dogroom-primary" />
                   </div>
                 )}
-                <MapView hosts={hosts} onMarkerClick={handleMarkerClick} selectedHostId={selectedHostId} />
+                <MapView
+                  hosts={hosts}
+                  onMarkerClick={handleMarkerClick}
+                  selectedHostId={selectedHostId}
+                  center={[46.813, -71.208]}
+                />
               </div>
               <div className="lg:col-span-1 space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto pr-2">
                 {isLoading

@@ -50,9 +50,8 @@ export interface Host {
   pricePerNight: number;
   location: {
     city: string;
-    // For demo map
-    x: number; // 0-1
-    y: number; // 0-1
+    lat: number;
+    lng: number;
   };
   availability: Availability[];
   verified: boolean;
@@ -79,8 +78,8 @@ export interface HostPreview {
   tags: ServiceType[];
   location: {
     city: string;
-    x: number;
-    y: number;
+    lat: number;
+    lng: number;
   };
   score?: number;
 }

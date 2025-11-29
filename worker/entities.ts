@@ -58,7 +58,7 @@ export class HostEntity extends IndexedEntity<Host> {
     reviewsCount: 0,
     tags: [],
     pricePerNight: 0,
-    location: { city: "", x: 0, y: 0 },
+    location: { city: "", lat: 0, lng: 0 },
     availability: [],
     verified: false,
     houseRules: [],
