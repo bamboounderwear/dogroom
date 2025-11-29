@@ -8,24 +8,29 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { HostPreview, ServiceType } from '@shared/types';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 interface HostCardProps {
   host: HostPreview;
+  isSelected?: boolean;
 }
 const serviceIcons: Record<ServiceType, React.ReactNode> = {
   boarding: <Home className="w-4 h-4 mr-1" />,
   daycare: <Sun className="w-4 h-4 mr-1" />,
   walking: <Footprints className="w-4 h-4 mr-1" />,
 };
-export function HostCard({ host }: HostCardProps) {
+export function HostCard({ host, isSelected }: HostCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 relative">
+      <Card className={cn(
+        "overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 relative",
+        isSelected && "shadow-2xl ring-2 ring-dogroom-primary -translate-y-1"
+      )}>
         {host.score && host.score > 550 && (
-            <Badge className="absolute top-2 right-2 bg-dogroom-accent text-dogroom-ink font-bold">
+            <Badge className="absolute top-2 right-2 bg-dogroom-accent text-dogroom-ink font-bold z-10">
                 <Award className="w-4 h-4 mr-1" />
                 Top Match
             </Badge>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MapView } from '@/components/MapView';
 import { HostCard, HostCardSkeleton } from '@/components/HostCard';
@@ -24,6 +24,10 @@ export function SearchPage() {
       body: JSON.stringify({ ...filters, location }),
     }),
   });
+  // Clear selection when search results change
+  useEffect(() => {
+    setSelectedHostId(null);
+  }, [hostsResponse]);
   const hosts = hostsResponse?.items ?? [];
   const handleApplyFilters = (newFilters: Filters) => {
     setFilters(newFilters);
@@ -54,7 +58,7 @@ export function SearchPage() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="lg:col-span-1 relative">
-                {isFetching && (
+                {isFetching && !isLoading && (
                   <div className="absolute inset-0 bg-white/50 dark:bg-black/50 z-10 flex items-center justify-center rounded-2xl">
                     <Loader2 className="w-8 h-8 animate-spin text-dogroom-primary" />
                   </div>
@@ -80,8 +84,9 @@ export function SearchPage() {
                             hidden: { opacity: 0, y: 20 },
                             visible: { opacity: 1, y: 0 },
                           }}
+                          onClick={() => setSelectedHostId(host.id)}
                         >
-                          <HostCard host={host} />
+                          <HostCard host={host} isSelected={selectedHostId === host.id} />
                         </motion.div>
                       ))}
                     </motion.div>
