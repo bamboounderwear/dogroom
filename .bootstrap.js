@@ -78,7 +78,9 @@ function updateWranglerJsonc() {
 
 function runSetupCommands() {
     const commands = [
-    "bun add leaflet"
+    "bun add leaflet",
+    "bun install leaflet",
+    "bun install @types/leaflet -d"
 ];
     
     if (commands.length === 0) {
