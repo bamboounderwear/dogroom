@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import type { Chat, ChatMessage, User } from '@shared/types';
+import type { Chat, ChatMessage } from '@shared/types';
 import { DEMO_USER_ID } from '@shared/mock-data';
 import { Card, CardHeader } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,7 +28,7 @@ export function MessagesPage() {
     <AppLayout container>
       <div className="space-y-4">
         <h1 className="text-4xl font-bold font-display">Messages</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 h-[calc(100vh-15rem)]">
           <Card className="md:col-span-1 lg:col-span-1">
             <ScrollArea className="h-full">
               <div className="p-2 space-y-1">
@@ -122,7 +122,6 @@ function ChatWindow({ chatId }: { chatId: string }) {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        {/* Could fetch chat details here */}
         <p className="font-semibold">Conversation</p>
       </CardHeader>
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>

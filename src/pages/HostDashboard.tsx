@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import type { Booking, Host, User } from '@shared/types';
-import { DEMO_USER_ID } from '@shared/mock-data'; // Assuming host is also a user
+import type { Booking, User } from '@shared/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';

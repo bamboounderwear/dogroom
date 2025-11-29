@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MapView } from '@/components/MapView';
 import { HostCard, HostCardSkeleton } from '@/components/HostCard';
@@ -39,8 +39,8 @@ export function SearchPage() {
   };
   return (
     <AppLayout container={false}>
-      <div className="flex flex-col md:flex-row h-screen bg-muted/30">
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+      <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -61,7 +61,7 @@ export function SearchPage() {
                 )}
                 <MapView hosts={hosts} onMarkerClick={handleMarkerClick} selectedHostId={selectedHostId} />
               </div>
-              <div className="lg:col-span-1 space-y-4 max-h-[75vh] overflow-y-auto pr-2">
+              <div className="lg:col-span-1 space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto pr-2">
                 {isLoading
                   ? Array.from({ length: 3 }).map((_, i) => <HostCardSkeleton key={i} />)
                   : hosts.length > 0 ? (
@@ -96,7 +96,7 @@ export function SearchPage() {
               </div>
             </div>
           </div>
-        </main>
+        </div>
         <FilterSheet
           open={isFilterSheetOpen}
           onOpenChange={setFilterSheetOpen}

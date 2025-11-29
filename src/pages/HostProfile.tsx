@@ -83,7 +83,7 @@ export function HostProfile() {
     });
   };
   if (isLoading) return <HostProfileSkeleton />;
-  if (isError || !host) return <div className="text-center py-20">Host not found.</div>;
+  if (isError || !host) return <AppLayout container><div className="text-center py-20">Host not found.</div></AppLayout>;
   const nights = selectedDates?.from && selectedDates?.to ?
     differenceInCalendarDays(selectedDates.to, selectedDates.from) : 0;
   const totalCost = nights * host.pricePerNight;
@@ -174,7 +174,7 @@ export function HostProfile() {
             </section>
           </div>
           <aside className="lg:col-span-1">
-            <Card className="sticky top-8 shadow-lg">
+            <Card className="sticky top-24 shadow-lg">
               <CardHeader>
                 <CardTitle className="text-2xl">
                   <span className="font-bold">${host.pricePerNight}</span>
