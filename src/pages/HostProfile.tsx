@@ -3,20 +3,22 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { api } from '@/lib/api-client';
-import type { Host, ServiceType } from '@shared/types';
+import type { Host, ServiceType, Review } from '@shared/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import { Star, Home, Sun, Footprints, ShieldCheck, ListChecks, MessageSquare } from 'lucide-react';
 import { DEMO_USER_ID } from '@shared/mock-data';
 import { DateRange } from 'react-day-picker';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { ReviewCard } from '@/components/ReviewCard';
+import { track } from '@/components/analytics';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { motion } from 'framer-motion';
 const serviceIcons: Record<ServiceType, React.ReactNode> = {
   boarding: <Home className="w-4 h-4 mr-2" />,
   daycare: <Sun className="w-4 h-4 mr-2" />,
@@ -32,16 +34,27 @@ export function HostProfile() {
     queryFn: () => api<Host>(`/api/hosts/${id}`),
     enabled: !!id
   });
+  const { data: reviewsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useQuery({
+    queryKey: ['reviews', id],
+    queryFn: ({ pageParam = null }) => api<{ items: Review[], next: string | null }>(`/api/reviews?hostId=${id}&cursor=${pageParam}`),
+    getNextPageParam: (lastPage) => lastPage.next,
+    initialPageParam: null,
+    enabled: !!id,
+  });
+  const allReviews = reviewsData?.pages.flatMap(page => page.items) ?? host?.reviews ?? [];
   const bookingMutation = useMutation({
     mutationFn: (newBooking: {hostId: string;userId: string;from: number;to: number;}) =>
     api('/api/bookings', {
       method: 'POST',
       body: JSON.stringify(newBooking)
     }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      const nights = differenceInCalendarDays(variables.to, variables.from);
+      const totalCost = nights * (host?.pricePerNight ?? 0);
       toast.success('Booking request sent!', {
         description: 'The host will confirm your request shortly.'
       });
+      track({ name: 'booking_request', params: { host_id: variables.hostId, nights, total_cost: totalCost } });
       setBookingSheetOpen(false);
       setSelectedDates(undefined);
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
@@ -57,6 +70,10 @@ export function HostProfile() {
       toast.warning('Please select a date range.');
       return;
     }
+    if (differenceInCalendarDays(selectedDates.to, selectedDates.from) < 1) {
+        toast.warning('Booking must be for at least one night.');
+        return;
+    }
     if (!id) return;
     bookingMutation.mutate({
       hostId: id,
@@ -68,23 +85,25 @@ export function HostProfile() {
   if (isLoading) return <HostProfileSkeleton />;
   if (isError || !host) return <div className="text-center py-20">Host not found.</div>;
   const nights = selectedDates?.from && selectedDates?.to ?
-  Math.ceil((selectedDates.to.getTime() - selectedDates.from.getTime()) / (1000 * 3600 * 24)) :
-  0;
+    differenceInCalendarDays(selectedDates.to, selectedDates.from) : 0;
   const totalCost = nights * host.pricePerNight;
   return (
     <AppLayout container>
       <div className="space-y-12">
         <header className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 h-96">
-            <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden">
-              <img src={host.gallery[0]} alt="Main gallery view" className="w-full h-full object-cover" />
-            </div>
-            {host.gallery.slice(1, 4).map((img, i) =>
-            <div key={i} className="rounded-2xl overflow-hidden hidden md:block">
-                <img src={img} alt={`Gallery view ${i + 2}`} className="w-full h-full object-cover" />
-              </div>
-            )}
-          </div>
+          <Carousel className="w-full">
+            <CarouselContent>
+              {host.gallery.map((img, i) => (
+                <CarouselItem key={i}>
+                  <div className="aspect-video rounded-2xl overflow-hidden bg-muted">
+                    <img src={img} alt={`Gallery view ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
+          </Carousel>
           <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div>
               <h1 className="text-4xl font-bold font-display">{host.name}</h1>
@@ -92,7 +111,7 @@ export function HostProfile() {
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 text-dogroom-accent fill-current" />
                   <span className="font-semibold text-foreground">{host.rating.toFixed(1)}</span>
-                  <span>({host.reviews?.length ?? 0} reviews)</span>
+                  <span>({allReviews.length} reviews)</span>
                 </div>
                 {host.verified &&
                 <div className="flex items-center gap-1">
@@ -120,10 +139,10 @@ export function HostProfile() {
               <h2 className="text-2xl font-semibold mb-4">Services Offered</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {host.tags.map((tag) =>
-                <div key={tag} className="flex items-center p-4 border rounded-lg">
+                <motion.div whileHover={{ scale: 1.05 }} key={tag} className="flex items-center p-4 border rounded-lg">
                     {serviceIcons[tag]}
                     <span className="capitalize font-medium">{tag}</span>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             </section>
@@ -139,12 +158,17 @@ export function HostProfile() {
               </ul>
             </section>
             <section>
-              <h2 className="text-2xl font-semibold mb-4">Reviews ({host.reviews?.length ?? 0})</h2>
+              <h2 className="text-2xl font-semibold mb-4">Reviews ({allReviews.length})</h2>
               <div className="space-y-4">
-                {host.reviews && host.reviews.length > 0 ? (
-                    host.reviews.slice(0, 3).map(review => <ReviewCard key={review.id} review={review} />)
+                {allReviews.length > 0 ? (
+                    allReviews.map(review => <ReviewCard key={review.id} review={review} />)
                 ) : (
                     <p className="text-muted-foreground">No reviews yet.</p>
+                )}
+                {hasNextPage && (
+                  <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="w-full">
+                    {isFetchingNextPage ? 'Loading more...' : 'Load More Reviews'}
+                  </Button>
                 )}
               </div>
             </section>
@@ -182,6 +206,7 @@ export function HostProfile() {
         <SheetContent>
           <SheetHeader>
             <SheetTitle>Confirm your booking</SheetTitle>
+            <SheetDescription>Review the details before sending your request.</SheetDescription>
           </SheetHeader>
           <div className="py-8 space-y-6">
             <div>
@@ -201,7 +226,7 @@ export function HostProfile() {
                     <p className="text-sm text-muted-foreground">Check-out</p>
                   </div>
                 </div> :
-              <p className="text-muted-foreground">Please select dates on the calendar.</p>
+              <p className="text-muted-foreground">Please select dates on the calendar first.</p>
               }
             </div>
             {nights > 0 &&
@@ -222,7 +247,7 @@ export function HostProfile() {
               size="lg"
               className="w-full"
               onClick={handleBookNow}
-              disabled={!selectedDates?.from || !selectedDates?.to || bookingMutation.isPending}>
+              disabled={!selectedDates?.from || !selectedDates?.to || nights < 1 || bookingMutation.isPending}>
               {bookingMutation.isPending ? 'Requesting...' : 'Request to Book'}
             </Button>
           </SheetFooter>
@@ -235,11 +260,7 @@ function HostProfileSkeleton() {
     <AppLayout container>
       <div className="space-y-12">
         <header className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 h-96">
-            <Skeleton className="col-span-2 row-span-2 rounded-2xl" />
-            <Skeleton className="rounded-2xl hidden md:block" />
-            <Skeleton className="rounded-2xl hidden md:block" />
-          </div>
+          <Skeleton className="w-full aspect-video rounded-2xl" />
           <div className="flex justify-between items-start">
             <div className="space-y-2">
               <Skeleton className="h-10 w-72" />

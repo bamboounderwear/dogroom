@@ -1,21 +1,23 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MapView } from '@/components/MapView';
 import { HostCard, HostCardSkeleton } from '@/components/HostCard';
 import { FilterSheet, Filters } from '@/components/FilterSheet';
 import { Button } from '@/components/ui/button';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, PawPrint, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import type { HostPreview } from '@shared/types';
 import { useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { track } from '@/components/analytics';
 export function SearchPage() {
   const [searchParams] = useSearchParams();
   const location = useMemo(() => searchParams.get('location') || 'Quebec', [searchParams]);
   const [filters, setFilters] = useState<Filters>({});
   const [isFilterSheetOpen, setFilterSheetOpen] = useState(false);
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
-  const { data: hostsResponse, isLoading } = useQuery({
+  const { data: hostsResponse, isLoading, isFetching } = useQuery({
     queryKey: ['search', location, filters],
     queryFn: () => api<{ items: HostPreview[] }>('/api/search', {
       method: 'POST',
@@ -23,6 +25,18 @@ export function SearchPage() {
     }),
   });
   const hosts = hostsResponse?.items ?? [];
+  const handleApplyFilters = (newFilters: Filters) => {
+    setFilters(newFilters);
+    track({ name: 'search_filter_apply', params: { filters: newFilters } });
+  };
+  const handleMarkerClick = (hostId: string) => {
+    setSelectedHostId(hostId);
+    track({ name: 'host_select', params: { host_id: hostId, source: 'map' } });
+    const element = document.getElementById(`host-card-${hostId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
   return (
     <AppLayout container={false}>
       <div className="flex flex-col md:flex-row h-screen bg-muted/30">
@@ -39,19 +53,46 @@ export function SearchPage() {
               </Button>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="lg:col-span-1">
-                <MapView hosts={hosts} onMarkerClick={setSelectedHostId} selectedHostId={selectedHostId} />
+              <div className="lg:col-span-1 relative">
+                {isFetching && (
+                  <div className="absolute inset-0 bg-white/50 dark:bg-black/50 z-10 flex items-center justify-center rounded-2xl">
+                    <Loader2 className="w-8 h-8 animate-spin text-dogroom-primary" />
+                  </div>
+                )}
+                <MapView hosts={hosts} onMarkerClick={handleMarkerClick} selectedHostId={selectedHostId} />
               </div>
               <div className="lg:col-span-1 space-y-4 max-h-[75vh] overflow-y-auto pr-2">
                 {isLoading
                   ? Array.from({ length: 3 }).map((_, i) => <HostCardSkeleton key={i} />)
-                  : hosts.map((host) => <HostCard key={host.id} host={host} />)}
-                {!isLoading && hosts.length === 0 && (
-                    <div className="text-center py-12">
-                        <h3 className="text-xl font-semibold">No sitters found</h3>
-                        <p className="text-muted-foreground mt-2">Try adjusting your filters or searching a different area.</p>
+                  : hosts.length > 0 ? (
+                    <motion.div
+                      variants={{
+                        visible: { transition: { staggerChildren: 0.07 } },
+                      }}
+                      initial="hidden"
+                      animate="visible"
+                    >
+                      {hosts.map((host) => (
+                        <motion.div
+                          id={`host-card-${host.id}`}
+                          key={host.id}
+                          variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            visible: { opacity: 1, y: 0 },
+                          }}
+                        >
+                          <HostCard host={host} />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  ) : (
+                    <div className="text-center py-12 flex flex-col items-center justify-center h-full">
+                      <PawPrint className="w-16 h-16 text-muted-foreground/50" />
+                      <h3 className="text-xl font-semibold mt-4">No sitters found</h3>
+                      <p className="text-muted-foreground mt-2">Try adjusting your filters or searching a different area.</p>
+                      <Button className="mt-4" onClick={() => setFilterSheetOpen(true)}>Adjust Filters</Button>
                     </div>
-                )}
+                  )}
               </div>
             </div>
           </div>
@@ -59,7 +100,7 @@ export function SearchPage() {
         <FilterSheet
           open={isFilterSheetOpen}
           onOpenChange={setFilterSheetOpen}
-          onApply={setFilters}
+          onApply={handleApplyFilters}
         />
       </div>
     </AppLayout>
