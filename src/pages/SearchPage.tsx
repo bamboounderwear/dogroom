@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MapView } from '@/components/MapView';
 import { HostCard, HostCardSkeleton } from '@/components/HostCard';
@@ -11,14 +11,15 @@ import type { HostPreview } from '@shared/types';
 import { useSearchParams } from 'react-router-dom';
 export function SearchPage() {
   const [searchParams] = useSearchParams();
+  const location = useMemo(() => searchParams.get('location') || 'Quebec', [searchParams]);
   const [filters, setFilters] = useState<Filters>({});
   const [isFilterSheetOpen, setFilterSheetOpen] = useState(false);
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
   const { data: hostsResponse, isLoading } = useQuery({
-    queryKey: ['search', filters],
+    queryKey: ['search', location, filters],
     queryFn: () => api<{ items: HostPreview[] }>('/api/search', {
       method: 'POST',
-      body: JSON.stringify(filters),
+      body: JSON.stringify({ ...filters, location }),
     }),
   });
   const hosts = hostsResponse?.items ?? [];
@@ -29,8 +30,8 @@ export function SearchPage() {
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-3xl font-bold font-display">Sitters near {searchParams.get('location') || 'you'}</h1>
-                <p className="text-muted-foreground">{hosts.length} pawsome sitters found</p>
+                <h1 className="text-3xl font-bold font-display">Sitters near {location}</h1>
+                <p className="text-muted-foreground">{isLoading ? 'Searching...' : `${hosts.length} pawsome sitters found`}</p>
               </div>
               <Button variant="outline" onClick={() => setFilterSheetOpen(true)}>
                 <SlidersHorizontal className="w-4 h-4 mr-2" />

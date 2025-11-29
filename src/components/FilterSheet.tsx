@@ -6,7 +6,6 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
-  SheetClose,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,8 +14,9 @@ import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Calendar } from '@/components/ui/calendar';
 import type { PetSize, ServiceType } from '@shared/types';
+import { DateRange } from 'react-day-picker';
 export interface Filters {
-  dates?: { from?: Date; to?: Date };
+  dates?: DateRange;
   petSize?: PetSize;
   priceRange?: [number, number];
   services?: ServiceType[];

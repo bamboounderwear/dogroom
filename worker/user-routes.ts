@@ -1,15 +1,21 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { UserEntity, ChatBoardEntity, HostEntity, BookingEntity } from "./entities";
+import { UserEntity, ChatBoardEntity, HostEntity, BookingEntity, ReviewEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
-import type { Host, HostPreview, PetSize } from "@shared/types";
+import type { Host, HostPreview, PetSize, ServiceType, Review } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/test', (c) => c.json({ success: true, data: { name: 'DogRoom API' }}));
   // Ensure data is seeded on first request to any of these
-  app.use('/api/users/*', async (c, next) => { await UserEntity.ensureSeed(c.env); await next(); });
-  app.use('/api/chats/*', async (c, next) => { await ChatBoardEntity.ensureSeed(c.env); await next(); });
-  app.use('/api/hosts/*', async (c, next) => { await HostEntity.ensureSeed(c.env); await next(); });
-  app.use('/api/bookings/*', async (c, next) => { await BookingEntity.ensureSeed(c.env); await next(); });
+  app.use('/api/*', async (c, next) => { 
+    await Promise.all([
+        UserEntity.ensureSeed(c.env),
+        ChatBoardEntity.ensureSeed(c.env),
+        HostEntity.ensureSeed(c.env),
+        BookingEntity.ensureSeed(c.env),
+        ReviewEntity.ensureSeed(c.env)
+    ]);
+    await next(); 
+  });
   // HOSTS
   app.get('/api/hosts', async (c) => {
     const cq = c.req.query('cursor');
@@ -18,43 +24,67 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return ok(c, page);
   });
   app.get('/api/hosts/:id', async (c) => {
-    const host = new HostEntity(c.env, c.req.param('id'));
+    const hostId = c.req.param('id');
+    const host = new HostEntity(c.env, hostId);
     if (!await host.exists()) return notFound(c, 'host not found');
-    return ok(c, await host.getState());
+    const hostState = await host.getState();
+    // Aggregate reviews for this host
+    const { items: allReviews } = await ReviewEntity.list(c.env, null, 1000);
+    const hostReviews = allReviews.filter(r => r.hostId === hostId);
+    const userIds = [...new Set(hostReviews.map(r => r.userId))];
+    const users = await Promise.all(userIds.map(id => new UserEntity(c.env, id).getState()));
+    const usersById = new Map(users.map(u => [u.id, u]));
+    const populatedReviews = hostReviews.map(r => ({ ...r, user: usersById.get(r.userId) }));
+    return ok(c, { ...hostState, reviews: populatedReviews });
   });
   app.post('/api/search', async (c) => {
-    const { petSize, from, to, radiusKm } = (await c.req.json()) as { petSize?: PetSize, from?: number, to?: number, radiusKm?: number };
+    const { petSize, services } = (await c.req.json()) as { petSize?: PetSize, services?: ServiceType[] };
     const { items: allHosts } = await HostEntity.list(c.env, null, 100); // Get all for demo
     const filtered = allHosts.filter(host => {
       if (petSize && !host.allowedPetSizes.includes(petSize)) return false;
-      // NOTE: Availability check is mocked for phase 1
+      if (services && services.length > 0 && !services.every(s => host.tags.includes(s))) return false;
       return true;
     });
-    const previews: HostPreview[] = filtered.map(host => ({
-      id: host.id,
-      name: host.name,
-      avatar: host.avatar,
-      pricePerNight: host.pricePerNight,
-      rating: host.rating,
-      tags: host.tags,
-      location: host.location,
-      score: host.rating * 100 + host.reviewsCount, // Simple scoring
-    }));
+    const previews: HostPreview[] = filtered.map(host => {
+        let score = host.rating * 100 + host.reviewsCount;
+        if (services && services.length > 0 && services.every(s => host.tags.includes(s))) {
+            score += 50; // Bonus for matching all services
+        }
+        if (petSize && host.allowedPetSizes.includes(petSize)) {
+            score += 25; // Bonus for matching pet size
+        }
+        return {
+          id: host.id,
+          name: host.name,
+          avatar: host.avatar,
+          pricePerNight: host.pricePerNight,
+          rating: host.rating,
+          tags: host.tags,
+          location: host.location,
+          score,
+        }
+    });
     previews.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     return ok(c, { items: previews.slice(0, 20), next: null });
   });
   // BOOKINGS
   app.get('/api/bookings', async (c) => {
     const userId = c.req.query('userId');
-    if (!isStr(userId)) return bad(c, 'userId is required');
+    const hostId = c.req.query('hostId');
     const { items: allBookings } = await BookingEntity.list(c.env, null, 1000);
-    const userBookings = allBookings.filter(b => b.userId === userId);
-    const hostIds = [...new Set(userBookings.map(b => b.hostId))];
+    let bookings = allBookings;
+    if (isStr(userId)) bookings = bookings.filter(b => b.userId === userId);
+    if (isStr(hostId)) bookings = bookings.filter(b => b.hostId === hostId);
+    const hostIds = [...new Set(bookings.map(b => b.hostId))];
+    const userIds = [...new Set(bookings.map(b => b.userId))];
     const hosts = await Promise.all(hostIds.map(id => new HostEntity(c.env, id).getState()));
+    const users = await Promise.all(userIds.map(id => new UserEntity(c.env, id).getState()));
     const hostsById = new Map(hosts.map(h => [h.id, h]));
-    const results = userBookings.map(booking => ({
+    const usersById = new Map(users.map(u => [u.id, u]));
+    const results = bookings.map(booking => ({
       ...booking,
-      host: hostsById.get(booking.hostId)
+      host: hostsById.get(booking.hostId),
+      user: usersById.get(booking.userId),
     }));
     return ok(c, { items: results, next: null });
   });
@@ -65,9 +95,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }
     const host = new HostEntity(c.env, hostId);
     if (!await host.exists()) return notFound(c, 'host not found');
-    // Mocked conflict check for Phase 1
     const { items: allBookings } = await BookingEntity.list(c.env, null, 1000);
-    const hostBookings = allBookings.filter(b => b.hostId === hostId && b.status !== 'cancelled');
+    const hostBookings = allBookings.filter(b => b.hostId === hostId && (b.status === 'confirmed' || b.status === 'pending'));
     const hasConflict = hostBookings.some(b => (from < b.to && to > b.from));
     if (hasConflict) {
       return bad(c, 'Dates are not available. Please select a different range.');
@@ -90,6 +119,35 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!await booking.exists()) return notFound(c, 'booking not found');
     await booking.mutate(s => ({ ...s, status: 'cancelled' }));
     return ok(c, { id: bookingId, deleted: true });
+  });
+  app.put('/api/bookings/:id/accept', async (c) => {
+    const booking = new BookingEntity(c.env, c.req.param('id'));
+    if (!await booking.exists()) return notFound(c);
+    await booking.accept();
+    return ok(c, await booking.getState());
+  });
+  app.put('/api/bookings/:id/reject', async (c) => {
+    const booking = new BookingEntity(c.env, c.req.param('id'));
+    if (!await booking.exists()) return notFound(c);
+    await booking.reject();
+    return ok(c, await booking.getState());
+  });
+  // REVIEWS
+  app.get('/api/reviews', async (c) => {
+    const hostId = c.req.query('hostId');
+    if (!isStr(hostId)) return bad(c, 'hostId is required');
+    const { items: allReviews } = await ReviewEntity.list(c.env, null, 1000);
+    const hostReviews = allReviews.filter(r => r.hostId === hostId);
+    return ok(c, { items: hostReviews });
+  });
+  app.post('/api/reviews', async (c) => {
+    const { hostId, userId, rating, comment } = (await c.req.json()) as Partial<Review>;
+    if (!isStr(hostId) || !isStr(userId) || !rating || !isStr(comment)) {
+        return bad(c, 'hostId, userId, rating, and comment are required');
+    }
+    const review: Review = { id: crypto.randomUUID(), hostId, userId, rating, comment, ts: Date.now() };
+    await ReviewEntity.create(c.env, review);
+    return ok(c, review);
   });
   // --- Existing Demo Routes ---
   // USERS

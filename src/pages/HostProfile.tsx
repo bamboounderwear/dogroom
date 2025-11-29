@@ -9,12 +9,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { toast } from 'sonner';
-import { Star, Home, Sun, Footprints, ShieldCheck, Dog, Ruler, ListChecks } from 'lucide-react';
+import { Star, Home, Sun, Footprints, ShieldCheck, ListChecks, MessageSquare } from 'lucide-react';
 import { DEMO_USER_ID } from '@shared/mock-data';
 import { DateRange } from 'react-day-picker';
-import { format } from 'date-fns';interface Card {id?: string | number;[key: string]: unknown;}interface CardFooterProps {children?: React.ReactNode;className?: string;style?: React.CSSProperties;[key: string]: unknown;}interface CardFooterProps {children?: React.ReactNode;className?: string;style?: React.CSSProperties;[key: string]: unknown;}interface CardContent {id?: string | number;[key: string]: unknown;}interface CardContentProps {children?: React.ReactNode;className?: string;style?: React.CSSProperties;[key: string]: unknown;}interface CardHeader {id?: string | number;[key: string]: unknown;}interface CardTitleProps {children?: React.ReactNode;className?: string;style?: React.CSSProperties;[key: string]: unknown;}interface CardTitleProps {children?: React.ReactNode;className?: string;style?: React.CSSProperties;[key: string]: unknown;}interface CardHeaderProps {children?: React.ReactNode;className?: string;style?: React.CSSProperties;[key: string]: unknown;}interface CardProps {children?: React.ReactNode;className?: string;style?: React.CSSProperties;[key: string]: unknown;}
+import { format } from 'date-fns';
+import { ReviewCard } from '@/components/ReviewCard';
 const serviceIcons: Record<ServiceType, React.ReactNode> = {
   boarding: <Home className="w-4 h-4 mr-2" />,
   daycare: <Sun className="w-4 h-4 mr-2" />,
@@ -72,7 +74,6 @@ export function HostProfile() {
   return (
     <AppLayout container>
       <div className="space-y-12">
-        {}
         <header className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 h-96">
             <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden">
@@ -91,7 +92,7 @@ export function HostProfile() {
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 text-dogroom-accent fill-current" />
                   <span className="font-semibold text-foreground">{host.rating.toFixed(1)}</span>
-                  <span>({host.reviewsCount} reviews)</span>
+                  <span>({host.reviews?.length ?? 0} reviews)</span>
                 </div>
                 {host.verified &&
                 <div className="flex items-center gap-1">
@@ -109,7 +110,6 @@ export function HostProfile() {
             </div>
           </div>
         </header>
-        {}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           <div className="lg:col-span-2 space-y-8">
             <section>
@@ -138,8 +138,17 @@ export function HostProfile() {
                 )}
               </ul>
             </section>
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">Reviews ({host.reviews?.length ?? 0})</h2>
+              <div className="space-y-4">
+                {host.reviews && host.reviews.length > 0 ? (
+                    host.reviews.slice(0, 3).map(review => <ReviewCard key={review.id} review={review} />)
+                ) : (
+                    <p className="text-muted-foreground">No reviews yet.</p>
+                )}
+              </div>
+            </section>
           </div>
-          {}
           <aside className="lg:col-span-1">
             <Card className="sticky top-8 shadow-lg">
               <CardHeader>
@@ -155,18 +164,20 @@ export function HostProfile() {
                   onSelect={setSelectedDates}
                   numberOfMonths={1}
                   disabled={{ before: new Date() }} />
-
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-col gap-2">
                 <Button size="lg" className="w-full" onClick={() => setBookingSheetOpen(true)}>
                   Book Now
+                </Button>
+                <Button size="lg" variant="outline" className="w-full">
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Message Host
                 </Button>
               </CardFooter>
             </Card>
           </aside>
         </div>
       </div>
-      {}
       <Sheet open={isBookingSheetOpen} onOpenChange={setBookingSheetOpen}>
         <SheetContent>
           <SheetHeader>
@@ -190,7 +201,6 @@ export function HostProfile() {
                     <p className="text-sm text-muted-foreground">Check-out</p>
                   </div>
                 </div> :
-
               <p className="text-muted-foreground">Please select dates on the calendar.</p>
               }
             </div>
@@ -213,14 +223,12 @@ export function HostProfile() {
               className="w-full"
               onClick={handleBookNow}
               disabled={!selectedDates?.from || !selectedDates?.to || bookingMutation.isPending}>
-
               {bookingMutation.isPending ? 'Requesting...' : 'Request to Book'}
             </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
     </AppLayout>);
-
 }
 function HostProfileSkeleton() {
   return (
@@ -262,5 +270,4 @@ function HostProfileSkeleton() {
         </div>
       </div>
     </AppLayout>);
-
 }

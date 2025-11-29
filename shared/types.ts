@@ -12,6 +12,9 @@ export interface User {
 export interface Chat {
   id: string;
   title: string;
+  // For UI: add participants info
+  participants?: User[];
+  lastMessage?: ChatMessage;
 }
 export interface ChatMessage {
   id: string;
@@ -26,6 +29,15 @@ export type ServiceType = 'boarding' | 'daycare' | 'walking';
 export interface Availability {
   date: number; // epoch millis for the start of the day
   isAvailable: boolean;
+}
+export interface Review {
+    id: string;
+    hostId: string;
+    userId: string;
+    rating: number; // 1-5
+    comment: string;
+    ts: number;
+    user?: User; // populated on fetch
 }
 export interface Host {
   id: string;
@@ -47,6 +59,7 @@ export interface Host {
   houseRules: string[];
   gallery: string[];
   allowedPetSizes: PetSize[];
+  reviews?: Review[]; // populated on fetch
 }
 export interface Booking {
   id: string;
@@ -54,7 +67,7 @@ export interface Booking {
   userId: string;
   from: number; // epoch millis
   to: number; // epoch millis
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'rejected';
   createdAt: number;
 }
 export interface HostPreview {

@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import type { Booking, User } from '@shared/types';
+import type { Booking, Host, User } from '@shared/types';
+import { DEMO_USER_ID } from '@shared/mock-data'; // Assuming host is also a user
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,17 +13,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Check, X } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { track } from '@/components/analytics';
-import { EmptyState } from '@/components/EmptyState';
 type BookingWithUser = Booking & { user: User };
 // Mock host ID for demo
 const MOCK_HOST_ID = 'h1';
 export function HostDashboard() {
   const queryClient = useQueryClient();
-  useEffect(() => {
-    track({ name: 'page_view', params: { page_path: '/dashboard' } });
-  }, []);
   const { data: bookingsResponse, isLoading } = useQuery({
     queryKey: ['host-bookings', MOCK_HOST_ID],
     queryFn: () => api<{ items: BookingWithUser[] }>(`/api/bookings?hostId=${MOCK_HOST_ID}`),
@@ -31,9 +26,7 @@ export function HostDashboard() {
     mutationFn: ({ bookingId, status }: { bookingId: string; status: 'accept' | 'reject' }) =>
       api(`/api/bookings/${bookingId}/${status}`, { method: 'PUT' }),
     onSuccess: (_, vars) => {
-      const statusText = vars.status === 'accept' ? 'accepted' : 'rejected';
-      toast.success(`Booking ${statusText}.`);
-      track({ name: 'booking_status_update', params: { booking_id: vars.bookingId, status: statusText } });
+      toast.success(`Booking ${vars.status === 'accept' ? 'accepted' : 'rejected'}.`);
       queryClient.invalidateQueries({ queryKey: ['host-bookings', MOCK_HOST_ID] });
     },
     onError: (error: Error) => {
@@ -60,47 +53,32 @@ export function HostDashboard() {
                 {isLoading ? (
                   <BookingRequestSkeleton />
                 ) : pendingBookings.length > 0 ? (
-                  <motion.div
-                    variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-                    initial="hidden"
-                    animate="visible"
-                    className="space-y-4"
-                  >
-                    {pendingBookings.map(booking => (
-                      <motion.div
-                        key={booking.id}
-                        variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={booking.user?.avatar} />
-                            <AvatarFallback>{booking.user?.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold">{booking.user?.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(booking.from), 'LLL d')} - {format(new Date(booking.to), 'LLL d, yyyy')}
-                            </p>
-                          </div>
+                  pendingBookings.map(booking => (
+                    <div key={booking.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={booking.user?.avatar} />
+                          <AvatarFallback>{booking.user?.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold">{booking.user?.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(booking.from), 'LLL d')} - {format(new Date(booking.to), 'LLL d, yyyy')}
+                          </p>
                         </div>
-                        <div className="flex gap-2">
-                          <motion.div whileTap={{ scale: 0.95 }}>
-                            <Button size="icon" variant="outline" className="text-green-600 hover:bg-green-100" onClick={() => updateBookingStatus.mutate({ bookingId: booking.id, status: 'accept' })}>
-                              <Check className="w-4 h-4" />
-                            </Button>
-                          </motion.div>
-                          <motion.div whileTap={{ scale: 0.95 }}>
-                            <Button size="icon" variant="outline" className="text-red-600 hover:bg-red-100" onClick={() => updateBookingStatus.mutate({ bookingId: booking.id, status: 'reject' })}>
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </motion.div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="icon" variant="outline" className="text-green-600 hover:bg-green-100" onClick={() => updateBookingStatus.mutate({ bookingId: booking.id, status: 'accept' })}>
+                          <Check className="w-4 h-4" />
+                        </Button>
+                        <Button size="icon" variant="outline" className="text-red-600 hover:bg-red-100" onClick={() => updateBookingStatus.mutate({ bookingId: booking.id, status: 'reject' })}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
                 ) : (
-                  <EmptyState title="No new requests" description="You're all caught up!"/>
+                  <p className="text-muted-foreground text-sm text-center py-4">No new booking requests.</p>
                 )}
               </CardContent>
             </Card>
@@ -130,13 +108,13 @@ export function HostDashboard() {
                      </div>
                   ))
                 ) : (
-                  <EmptyState title="No upcoming stays" description="Your calendar is clear for now."/>
+                  <p className="text-muted-foreground text-sm text-center py-4">No upcoming stays.</p>
                 )}
               </CardContent>
             </Card>
           </main>
           <aside className="lg:col-span-1 space-y-6">
-            <Card className="sticky top-24">
+            <Card>
               <CardHeader>
                 <CardTitle>Manage Availability</CardTitle>
                 <CardDescription>Select dates you are unavailable.</CardDescription>

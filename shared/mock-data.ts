@@ -1,14 +1,17 @@
-import type { User, Chat, ChatMessage, Host, Booking, PetSize, ServiceType } from './types';
+import type { User, Chat, ChatMessage, Host, Booking, PetSize, ServiceType, Review } from './types';
 export const DEMO_USER_ID = 'u1';
 export const MOCK_USERS: User[] = [
   { id: DEMO_USER_ID, name: 'Alex Doe', avatar: 'https://i.pravatar.cc/150?u=alex' },
-  { id: 'u2', name: 'User B' }
+  { id: 'u2', name: 'Jane Smith', avatar: 'https://i.pravatar.cc/150?u=jane' }
 ];
 export const MOCK_CHATS: Chat[] = [
-  { id: 'c1', title: 'General' },
+  { id: 'c1', title: 'Chat with Sarah', participants: [MOCK_USERS[0], {id: 'h1', name: 'Sarah'}] },
+  { id: 'c2', title: 'Booking Inquiry - Mike', participants: [MOCK_USERS[0], {id: 'h2', name: 'Mike'}] },
 ];
 export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
-  { id: 'm1', chatId: 'c1', userId: 'u1', text: 'Hello', ts: Date.now() },
+  { id: 'm1', chatId: 'c1', userId: 'u1', text: 'Hi Sarah! Just wanted to confirm our booking for next week. Sparky is very excited!', ts: Date.now() - 1000 * 60 * 5 },
+  { id: 'm2', chatId: 'c1', userId: 'h1', text: 'Hi Alex! Yes, all confirmed. We can\'t wait to meet Sparky!', ts: Date.now() - 1000 * 60 * 2 },
+  { id: 'm3', chatId: 'c2', userId: 'u1', text: 'Hello, I was wondering if you have availability for a large dog in August?', ts: Date.now() - 1000 * 60 * 60 * 24 },
 ];
 export const MOCK_HOSTS: Host[] = [
   {
@@ -75,6 +78,12 @@ export const MOCK_HOSTS: Host[] = [
     gallery: ['/placeholder-dog-4.svg', '/placeholder-dog-1.svg', '/placeholder-dog-2.svg', '/placeholder-dog-3.svg'],
     allowedPetSizes: ['medium', 'large'],
   },
+];
+export const MOCK_REVIEWS: Review[] = [
+    { id: 'r1', hostId: 'h1', userId: 'u2', rating: 5, comment: 'Sarah was amazing! Our dog came back so happy and tired. We got daily photo updates. Highly recommend!', ts: Date.now() - 1000 * 60 * 60 * 24 * 5 },
+    { id: 'r2', hostId: 'h1', userId: DEMO_USER_ID, rating: 5, comment: 'The best sitter we\'ve ever had. Her dogs are super friendly and her backyard is perfect.', ts: Date.now() - 1000 * 60 * 60 * 24 * 15 },
+    { id: 'r3', hostId: 'h2', userId: 'u2', rating: 4, comment: 'Mike is great with big dogs. Our German Shepherd had a blast. A bit pricey but worth it for the peace of mind.', ts: Date.now() - 1000 * 60 * 60 * 24 * 8 },
+    { id: 'r4', hostId: 'h3', userId: DEMO_USER_ID, rating: 5, comment: 'Our senior chihuahua is very anxious, but she felt right at home here. So grateful for the calm environment.', ts: Date.now() - 1000 * 60 * 60 * 24 * 3 },
 ];
 export const MOCK_BOOKINGS: Booking[] = [
     {

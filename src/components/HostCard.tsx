@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Star, Home, Sun, Footprints } from 'lucide-react';
+import { Star, Home, Sun, Footprints, Award } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -23,11 +23,16 @@ export function HostCard({ host }: HostCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+      <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 relative">
+        {host.score && host.score > 550 && (
+            <Badge className="absolute top-2 right-2 bg-dogroom-accent text-dogroom-ink font-bold">
+                <Award className="w-4 h-4 mr-1" />
+                Top Match
+            </Badge>
+        )}
         <CardHeader className="p-0">
           <div className="aspect-video bg-muted overflow-hidden">
-            {/* In a real app, this would be a real image */}
-            <img src={`/placeholder-dog-${(parseInt(host.id.slice(1)) % 4) + 1}.svg`} alt={host.name} className="w-full h-full object-cover" />
+            <img src={`https://source.unsplash.com/400x300/?dog,pet,${host.id}`} onError={(e) => e.currentTarget.src = `/placeholder-dog-${(parseInt(host.id.slice(1)) % 4) + 1}.svg`} alt={host.name} className="w-full h-full object-cover" />
           </div>
         </CardHeader>
         <CardContent className="p-4 space-y-3">

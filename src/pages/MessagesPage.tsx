@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
-import type { Chat, ChatMessage } from '@shared/types';
+import type { Chat, ChatMessage, User } from '@shared/types';
 import { DEMO_USER_ID } from '@shared/mock-data';
 import { Card, CardHeader } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,12 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SendHorizonal, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { track } from '@/components/analytics';
 export function MessagesPage() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  useEffect(() => {
-    track({ name: 'page_view', params: { page_path: '/messages' } });
-  }, []);
   const { data: chatsResponse, isLoading: isLoadingChats } = useQuery({
     queryKey: ['chats'],
     queryFn: () => api<{ items: Chat[] }>('/api/chats'),
@@ -32,7 +28,7 @@ export function MessagesPage() {
     <AppLayout container>
       <div className="space-y-4">
         <h1 className="text-4xl font-bold font-display">Messages</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 h-[calc(100vh-15rem)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 h-[calc(100vh-200px)]">
           <Card className="md:col-span-1 lg:col-span-1">
             <ScrollArea className="h-full">
               <div className="p-2 space-y-1">
@@ -110,7 +106,6 @@ function ChatWindow({ chatId }: { chatId: string }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', chatId] });
-      track({ name: 'message_sent', params: { chat_id: chatId } });
       setText('');
     },
   });
@@ -127,6 +122,7 @@ function ChatWindow({ chatId }: { chatId: string }) {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
+        {/* Could fetch chat details here */}
         <p className="font-semibold">Conversation</p>
       </CardHeader>
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
@@ -138,9 +134,9 @@ function ChatWindow({ chatId }: { chatId: string }) {
                 <motion.div
                     key={msg.id}
                     layout
-                    initial={{ opacity: 0, x: msg.userId === DEMO_USER_ID ? 20 : -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                 >
                     <MessageBubble message={msg} />

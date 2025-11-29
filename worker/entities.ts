@@ -2,8 +2,8 @@
  * DogRoom Entities: HostEntity and BookingEntity
  */
 import { IndexedEntity, Entity } from "./core-utils";
-import type { User, Chat, ChatMessage, Host, Booking } from "@shared/types";
-import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_HOSTS, MOCK_BOOKINGS } from "@shared/mock-data";
+import type { User, Chat, ChatMessage, Host, Booking, Review } from "@shared/types";
+import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_HOSTS, MOCK_BOOKINGS, MOCK_REVIEWS } from "@shared/mock-data";
 // USER ENTITY: one DO instance per user
 export class UserEntity extends IndexedEntity<User> {
   static readonly entityName = "user";
@@ -31,6 +31,20 @@ export class ChatBoardEntity extends IndexedEntity<ChatBoardState> {
     await this.mutate(s => ({ ...s, messages: [...s.messages, msg] }));
     return msg;
   }
+}
+// REVIEW ENTITY
+export class ReviewEntity extends IndexedEntity<Review> {
+    static readonly entityName = "review";
+    static readonly indexName = "reviews";
+    static readonly initialState: Review = {
+        id: "",
+        hostId: "",
+        userId: "",
+        rating: 0,
+        comment: "",
+        ts: 0,
+    };
+    static seedData = MOCK_REVIEWS;
 }
 // HOST ENTITY
 export class HostEntity extends IndexedEntity<Host> {
@@ -67,4 +81,10 @@ export class BookingEntity extends IndexedEntity<Booking> {
         createdAt: 0,
     };
     static seedData = MOCK_BOOKINGS;
+    async accept(): Promise<void> {
+        await this.mutate(s => ({ ...s, status: 'confirmed' }));
+    }
+    async reject(): Promise<void> {
+        await this.mutate(s => ({ ...s, status: 'rejected' }));
+    }
 }

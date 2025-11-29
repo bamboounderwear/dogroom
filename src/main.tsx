@@ -15,6 +15,8 @@ import { HomePage } from '@/pages/HomePage'
 import { SearchPage } from '@/pages/SearchPage';
 import { HostProfile } from '@/pages/HostProfile';
 import { BookingsPage } from '@/pages/BookingsPage';
+import { MessagesPage } from '@/pages/MessagesPage';
+import { HostDashboard } from '@/pages/HostDashboard';
 import { DemoPage } from '@/pages/DemoPage';
 import { Toaster } from '@/components/ui/sonner';
 const queryClient = new QueryClient();
@@ -37,6 +39,16 @@ const router = createBrowserRouter([
   {
     path: "/bookings",
     element: <BookingsPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/messages",
+    element: <MessagesPage />,
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/dashboard",
+    element: <HostDashboard />,
     errorElement: <RouteErrorBoundary />,
   },
   {
