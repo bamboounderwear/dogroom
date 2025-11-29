@@ -53,6 +53,16 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         if (petSize && host.allowedPetSizes.includes(petSize)) {
             score += 25; // Bonus for matching pet size
         }
+        const rawLoc = (host as any).location ?? {};
+        const latRaw = rawLoc.lat ?? rawLoc.latitude ?? rawLoc.y ?? rawLoc.x;
+        const lngRaw = rawLoc.lng ?? rawLoc.longitude ?? rawLoc.x ?? rawLoc.y;
+        const latNum = Number(latRaw);
+        const lngNum = Number(lngRaw);
+        const location = {
+          lat: Number.isFinite(latNum) ? latNum : 46.813,
+          lng: Number.isFinite(lngNum) ? lngNum : -71.208,
+          city: typeof rawLoc.city === 'string' && rawLoc.city.trim() ? rawLoc.city : 'Quebec',
+        };
         return {
           id: host.id,
           name: host.name,
@@ -60,7 +70,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
           pricePerNight: host.pricePerNight,
           rating: host.rating,
           tags: host.tags,
-          location: host.location,
+          location,
           score,
         }
     });

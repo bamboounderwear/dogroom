@@ -15,11 +15,15 @@ type AnalyticsEvent =
   | { name: 'message_sent'; params: { chat_id: string } }
   | { name: 'booking_status_update'; params: { booking_id: string; status: 'accepted' | 'rejected' } }
   | { name: 'app_load'; params: { load_time_ms: number } };
-let eventQueue: AnalyticsEvent[] = [];
-let debounceTimer: NodeJS.Timeout | null = null;
+let eventQueue: { event: AnalyticsEvent; ts: number }[] = [];
+let debounceTimer: number | null = null;
 const sendEvents = () => {
   if (eventQueue.length > 0) {
-    console.log(`[Analytics] Batch sending ${eventQueue.length} events:`, eventQueue);
+    // Log events including their original event object and timestamp
+    console.log(
+      `[Analytics] Batch sending ${eventQueue.length} events:`,
+      eventQueue.map(({ event, ts }) => ({ event, ts }))
+    );
     // In a real app, you'd send this batch to your analytics backend.
     eventQueue = [];
   }
@@ -29,11 +33,11 @@ const sendEvents = () => {
  * @param event The event to track, consisting of a name and parameters.
  */
 export const track = (event: AnalyticsEvent) => {
-  eventQueue.push({ ...event, params: { ...event.params, timestamp: Date.now() } });
-  if (debounceTimer) {
+  eventQueue.push({ event, ts: Date.now() });
+  if (debounceTimer !== null) {
     clearTimeout(debounceTimer);
   }
-  debounceTimer = setTimeout(sendEvents, 200);
+  debounceTimer = window.setTimeout(sendEvents, 200);
 };
 // Track initial app load time
 const startTime = performance.now();

@@ -70,20 +70,30 @@ export function MapView({ hosts, onMarkerClick, selectedHostId, center }: MapVie
     if (markersLayer.current) {
       markersLayer.current.clearLayers();
       hosts.forEach((host) => {
+        const lat = host.location?.lat;
+        const lng = host.location?.lng;
+        if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) {
+          console.warn(`Skipping host ${host.id} due to invalid location:`, host.location);
+          return;
+        }
         const isSelected = host.id === selectedHostId;
-        const marker = L.marker([host.location.lat, host.location.lng], {
+        const marker = L.marker([lat, lng], {
           icon: createMarkerIcon(isSelected),
         })
           .addTo(markersLayer.current!)
           .on('click', () => {
             onMarkerClick(host.id);
-            mapInstance.current?.setView([host.location.lat, host.location.lng], 14, { animate: true });
+            if (mapInstance.current && !(Number.isNaN(lat) || Number.isNaN(lng))) {
+              mapInstance.current.setView([lat, lng], 14, { animate: true });
+            } else {
+              console.warn(`Cannot set view for host ${host.id} due to invalid location:`, host.location);
+            }
           });
         marker.bindPopup(
           `
           <div class="font-sans">
             <h3 class="font-bold">${host.name}</h3>
-            <p class="text-sm text-gray-600">$${host.pricePerNight}/night</p>
+            <p class="text-sm text-gray-600">${host.pricePerNight}/night</p>
             <a href="/hosts/${host.id}" class="text-blue-600 font-semibold mt-1 inline-block">View Profile &rarr;</a>
           </div>
           `,
@@ -95,8 +105,14 @@ export function MapView({ hosts, onMarkerClick, selectedHostId, center }: MapVie
   useEffect(() => {
     if (selectedHostId) {
       const host = hosts.find(h => h.id === selectedHostId);
-      if (host && mapInstance.current) {
-        mapInstance.current.setView([host.location.lat, host.location.lng], 14, { animate: true });
+      if (host) {
+        const lat = host.location?.lat;
+        const lng = host.location?.lng;
+        if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) {
+          console.warn(`Cannot set view for selected host ${selectedHostId} due to invalid location:`, host.location);
+        } else if (mapInstance.current) {
+          mapInstance.current.setView([lat, lng], 14, { animate: true });
+        }
       }
     }
   }, [selectedHostId, hosts]);

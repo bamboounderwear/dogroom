@@ -79,6 +79,20 @@ export const MOCK_HOSTS: Host[] = [
     allowedPetSizes: ['medium', 'large'],
   },
 ];
+// Ensure each host has numeric lat/lng for mapping; default to Quebec coordinates if missing
+for (const host of MOCK_HOSTS) {
+  if (!host.location) {
+    host.location = { city: 'Quebec', lat: 46.813, lng: -71.208 };
+    continue;
+  }
+  const { location } = host;
+  if (typeof location.lat !== 'number' || Number.isNaN(location.lat)) {
+    location.lat = 46.813;
+  }
+  if (typeof location.lng !== 'number' || Number.isNaN(location.lng)) {
+    location.lng = -71.208;
+  }
+}
 export const MOCK_REVIEWS: Review[] = [
     { id: 'r1', hostId: 'h1', userId: 'u2', rating: 5, comment: 'Sarah was amazing! Our dog came back so happy and tired. We got daily photo updates. Highly recommend!', ts: Date.now() - 1000 * 60 * 60 * 24 * 5 },
     { id: 'r2', hostId: 'h1', userId: DEMO_USER_ID, rating: 5, comment: 'The best sitter we\'ve ever had. Her dogs are super friendly and her backyard is perfect.', ts: Date.now() - 1000 * 60 * 60 * 24 * 15 },
