@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { api } from '@/lib/api-client';
@@ -22,19 +22,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PawPrint } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { track } from '@/components/analytics';
+import { EmptyState } from '@/components/EmptyState';
 type BookingWithHost = Booking & { host: Host };
 const statusColors: Record<Booking['status'], string> = {
-  pending: 'bg-yellow-400',
-  confirmed: 'bg-green-500',
-  cancelled: 'bg-gray-500',
-  rejected: 'bg-red-600',
+  pending: 'bg-yellow-400 border-yellow-500/20 text-yellow-900',
+  confirmed: 'bg-green-500 border-green-600/20 text-green-900',
+  cancelled: 'bg-gray-500 border-gray-600/20 text-gray-900',
+  rejected: 'bg-red-600 border-red-700/20 text-red-900',
 };
 export function BookingsPage() {
   const queryClient = useQueryClient();
+  useEffect(() => {
+    track({ name: 'page_view', params: { page_path: '/bookings' } });
+  }, []);
   const { data: bookingsResponse, isLoading, isError } = useQuery({
     queryKey: ['bookings', DEMO_USER_ID],
     queryFn: async () => {
@@ -73,10 +76,10 @@ export function BookingsPage() {
             {Array.from({ length: 2 }).map((_, i) => <BookingCardSkeleton key={i} />)}
           </div>
         ) : isError ? (
-          <div className="text-center py-20 border-2 border-dashed rounded-lg border-red-300 bg-red-50">
-            <h3 className="text-xl font-semibold text-red-800">Something went wrong</h3>
-            <p className="mt-2 text-red-600">We couldn't load your bookings. Please try refreshing the page.</p>
-          </div>
+          <EmptyState
+            title="Something went wrong"
+            description="We couldn't load your bookings. Please try refreshing the page."
+          />
         ) : bookings.length > 0 ? (
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 gap-6"
@@ -120,8 +123,7 @@ export function BookingsPage() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Status</span>
-                      <Badge className="capitalize flex items-center gap-1.5">
-                        <div className={`w-2 h-2 rounded-full ${statusColors[booking.status]}`} />
+                      <Badge className={`capitalize ${statusColors[booking.status]}`}>
                         {booking.status}
                       </Badge>
                     </div>
@@ -160,14 +162,11 @@ export function BookingsPage() {
             ))}
           </motion.div>
         ) : (
-          <div className="text-center py-20 border-2 border-dashed rounded-lg">
-            <PawPrint className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-xl font-semibold">No bookings yet</h3>
-            <p className="mt-2 text-muted-foreground">Ready for an adventure? Find a sitter for your best friend!</p>
-            <Button asChild className="mt-6">
-              <Link to="/search">Find a Sitter</Link>
-            </Button>
-          </div>
+          <EmptyState
+            title="No bookings yet"
+            description="Ready for an adventure? Find a sitter for your best friend!"
+            cta={{ label: "Find a Sitter", to: "/search" }}
+          />
         )}
       </div>
     </AppLayout>

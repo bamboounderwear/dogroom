@@ -13,8 +13,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SendHorizonal, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { track } from '@/components/analytics';
 export function MessagesPage() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  useEffect(() => {
+    track({ name: 'page_view', params: { page_path: '/messages' } });
+  }, []);
   const { data: chatsResponse, isLoading: isLoadingChats } = useQuery({
     queryKey: ['chats'],
     queryFn: () => api<{ items: Chat[] }>('/api/chats'),
@@ -106,6 +110,7 @@ function ChatWindow({ chatId }: { chatId: string }) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', chatId] });
+      track({ name: 'message_sent', params: { chat_id: chatId } });
       setText('');
     },
   });
@@ -133,9 +138,9 @@ function ChatWindow({ chatId }: { chatId: string }) {
                 <motion.div
                     key={msg.id}
                     layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, x: msg.userId === DEMO_USER_ID ? 20 : -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
                 >
                     <MessageBubble message={msg} />

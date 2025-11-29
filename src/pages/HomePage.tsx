@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PawPrint, MapPin, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { HostCard, HostCardSkeleton } from '@/components/HostCard';
 import { DEMO_USER_ID } from '@shared/mock-data';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EmptyState } from '@/components/EmptyState';
+import { track } from '@/components/analytics';
 function PawIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
       <svg
@@ -37,6 +38,9 @@ function PawIcon(props: React.SVGProps<SVGSVGElement>) {
 export function HomePage() {
   const navigate = useNavigate();
   const [location, setLocation] = React.useState('Quebec');
+  useEffect(() => {
+    track({ name: 'page_view', params: { page_path: '/' } });
+  }, []);
   const { data: hostsResponse, isLoading, isError } = useQuery({
     queryKey: ['hosts', 'featured'],
     queryFn: () => api<{ items: HostPreview[] }>('/api/hosts?limit=4'),
@@ -52,14 +56,27 @@ export function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-10 py-20 md:py-32 lg:py-40">
             <div className="text-center">
-              <h1 className="text-4xl md:text-6xl font-display font-bold text-dogroom-ink dark:text-white text-balance">
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-4xl md:text-6xl font-display font-bold text-dogroom-ink dark:text-white text-balance"
+              >
                 Find the perfect dog sitter, <br />
                 <span className="text-dogroom-primary">right next door.</span>
-              </h1>
-              <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground"
+              >
                 Connect with trusted, local dog lovers who can't wait to host your best friend.
-              </p>
-              <form
+              </motion.p>
+              <motion.form
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
                 onSubmit={handleSearch}
                 className="mt-8 max-w-xl mx-auto bg-white dark:bg-background shadow-lg rounded-full p-2 flex items-center gap-2 border"
               >
@@ -74,7 +91,7 @@ export function HomePage() {
                 <Button type="submit" size="icon" className="rounded-full w-12 h-12 bg-dogroom-primary hover:bg-dogroom-primary/90">
                   <Search className="w-6 h-6" />
                 </Button>
-              </form>
+              </motion.form>
             </div>
           </div>
         </div>

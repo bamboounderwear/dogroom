@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -11,7 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { toast } from 'sonner';
-import { Star, Home, Sun, Footprints, ShieldCheck, ListChecks, MessageSquare } from 'lucide-react';
+import { Star, Home, Sun, Footprints, ShieldCheck, ListChecks, MessageSquare, Loader2 } from 'lucide-react';
 import { DEMO_USER_ID } from '@shared/mock-data';
 import { DateRange } from 'react-day-picker';
 import { format, differenceInCalendarDays } from 'date-fns';
@@ -29,6 +29,9 @@ export function HostProfile() {
   const queryClient = useQueryClient();
   const [isBookingSheetOpen, setBookingSheetOpen] = useState(false);
   const [selectedDates, setSelectedDates] = useState<DateRange | undefined>();
+  useEffect(() => {
+    track({ name: 'page_view', params: { page_path: `/hosts/${id}` } });
+  }, [id]);
   const { data: host, isLoading, isError } = useQuery({
     queryKey: ['host', id],
     queryFn: () => api<Host>(`/api/hosts/${id}`),
@@ -93,11 +96,19 @@ export function HostProfile() {
         <header className="space-y-4">
           <Carousel className="w-full">
             <CarouselContent>
-              {host.gallery.map((img, i) => (
+              {isLoading ? Array.from({length: 4}).map((_, i) => (
+                <CarouselItem key={i}><Skeleton className="aspect-video rounded-2xl" /></CarouselItem>
+              )) : host.gallery.map((img, i) => (
                 <CarouselItem key={i}>
-                  <div className="aspect-video rounded-2xl overflow-hidden bg-muted">
-                    <img src={img} alt={`Gallery view ${i + 1}`} className="w-full h-full object-cover" />
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                  >
+                    <div className="aspect-video rounded-2xl overflow-hidden bg-muted">
+                      <img src={img} alt={`Gallery view ${i + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  </motion.div>
                 </CarouselItem>
               ))}
             </CarouselContent>
@@ -159,18 +170,23 @@ export function HostProfile() {
             </section>
             <section>
               <h2 className="text-2xl font-semibold mb-4">Reviews ({allReviews.length})</h2>
-              <div className="space-y-4">
+              <motion.div
+                className="space-y-4"
+                initial="hidden"
+                animate="visible"
+                variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+              >
                 {allReviews.length > 0 ? (
                     allReviews.map(review => <ReviewCard key={review.id} review={review} />)
                 ) : (
                     <p className="text-muted-foreground">No reviews yet.</p>
                 )}
-                {hasNextPage && (
-                  <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="w-full">
-                    {isFetchingNextPage ? 'Loading more...' : 'Load More Reviews'}
-                  </Button>
-                )}
-              </div>
+              </motion.div>
+              {hasNextPage && (
+                <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="w-full mt-4">
+                  {isFetchingNextPage ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading more...</> : 'Load More Reviews'}
+                </Button>
+              )}
             </section>
           </div>
           <aside className="lg:col-span-1">
@@ -248,7 +264,7 @@ export function HostProfile() {
               className="w-full"
               onClick={handleBookNow}
               disabled={!selectedDates?.from || !selectedDates?.to || nights < 1 || bookingMutation.isPending}>
-              {bookingMutation.isPending ? 'Requesting...' : 'Request to Book'}
+              {bookingMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Requesting...</> : 'Request to Book'}
             </Button>
           </SheetFooter>
         </SheetContent>

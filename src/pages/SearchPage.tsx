@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import type { HostPreview } from '@shared/types';
 import { useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { track } from '@/components/analytics';
 import { EmptyState } from '@/components/EmptyState';
 export function SearchPage() {
@@ -18,6 +18,9 @@ export function SearchPage() {
   const [filters, setFilters] = useState<Filters>({});
   const [isFilterSheetOpen, setFilterSheetOpen] = useState(false);
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
+  useEffect(() => {
+    track({ name: 'page_view', params: { page_path: '/search' } });
+  }, []);
   const { data: hostsResponse, isLoading, isFetching } = useQuery({
     queryKey: ['search', location, filters],
     queryFn: () => api<{ items: HostPreview[] }>('/api/search', {
@@ -25,7 +28,6 @@ export function SearchPage() {
       body: JSON.stringify({ ...filters, location }),
     }),
   });
-  // Clear selection when search results change
   useEffect(() => {
     setSelectedHostId(null);
   }, [hostsResponse]);
@@ -59,11 +61,18 @@ export function SearchPage() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="lg:col-span-1 relative">
-                {isFetching && !isLoading && (
-                  <div className="absolute inset-0 bg-white/50 dark:bg-black/50 z-10 flex items-center justify-center rounded-2xl">
-                    <Loader2 className="w-8 h-8 animate-spin text-dogroom-primary" />
-                  </div>
-                )}
+                <AnimatePresence>
+                  {isFetching && !isLoading && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-white/50 dark:bg-black/50 z-10 flex items-center justify-center rounded-2xl"
+                    >
+                      <Loader2 className="w-8 h-8 animate-spin text-dogroom-primary" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <MapView
                   hosts={hosts}
                   onMarkerClick={handleMarkerClick}
