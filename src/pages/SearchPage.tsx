@@ -4,13 +4,14 @@ import { MapView } from '@/components/MapView';
 import { HostCard, HostCardSkeleton } from '@/components/HostCard';
 import { FilterSheet, Filters } from '@/components/FilterSheet';
 import { Button } from '@/components/ui/button';
-import { SlidersHorizontal, PawPrint, Loader2 } from 'lucide-react';
+import { SlidersHorizontal, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import type { HostPreview } from '@shared/types';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { track } from '@/components/analytics';
+import { EmptyState } from '@/components/EmptyState';
 export function SearchPage() {
   const [searchParams] = useSearchParams();
   const location = useMemo(() => searchParams.get('location') || 'Quebec', [searchParams]);
@@ -33,6 +34,10 @@ export function SearchPage() {
     setFilters(newFilters);
     track({ name: 'search_filter_apply', params: { filters: newFilters } });
   };
+  const handleClearFilters = () => {
+    setFilters({});
+    setFilterSheetOpen(false);
+  }
   const handleMarkerClick = (hostId: string) => {
     setSelectedHostId(hostId);
     track({ name: 'host_select', params: { host_id: hostId, source: 'map' } });
@@ -91,12 +96,11 @@ export function SearchPage() {
                       ))}
                     </motion.div>
                   ) : (
-                    <div className="text-center py-12 flex flex-col items-center justify-center h-full">
-                      <PawPrint className="w-16 h-16 text-muted-foreground/50" />
-                      <h3 className="text-xl font-semibold mt-4">No sitters found</h3>
-                      <p className="text-muted-foreground mt-2">Try adjusting your filters or searching a different area.</p>
-                      <Button className="mt-4" onClick={() => setFilterSheetOpen(true)}>Adjust Filters</Button>
-                    </div>
+                    <EmptyState
+                      title="No sitters found"
+                      description="Try adjusting your filters or searching a different area."
+                      cta={{ label: "Adjust Filters", onClick: () => setFilterSheetOpen(true) }}
+                    />
                   )}
               </div>
             </div>

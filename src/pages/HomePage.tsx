@@ -9,6 +9,8 @@ import { api } from '@/lib/api-client';
 import type { HostPreview } from '@shared/types';
 import { HostCard, HostCardSkeleton } from '@/components/HostCard';
 import { DEMO_USER_ID } from '@shared/mock-data';
+import { motion, AnimatePresence } from 'framer-motion';
+import { EmptyState } from '@/components/EmptyState';
 function PawIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
       <svg
@@ -35,7 +37,7 @@ function PawIcon(props: React.SVGProps<SVGSVGElement>) {
 export function HomePage() {
   const navigate = useNavigate();
   const [location, setLocation] = React.useState('Quebec');
-  const { data: hostsResponse, isLoading } = useQuery({
+  const { data: hostsResponse, isLoading, isError } = useQuery({
     queryKey: ['hosts', 'featured'],
     queryFn: () => api<{ items: HostPreview[] }>('/api/hosts?limit=4'),
   });
@@ -43,6 +45,7 @@ export function HomePage() {
     e.preventDefault();
     navigate(`/search?location=${encodeURIComponent(location)}`);
   };
+  const hosts = hostsResponse?.items ?? [];
   return (
     <AppLayout container={false}>
       <header className="relative bg-blue-50 dark:bg-dogroom-ink/30 overflow-hidden">
@@ -75,10 +78,17 @@ export function HomePage() {
             </div>
           </div>
         </div>
-        <div className="absolute inset-0 z-0 opacity-20">
-          <PawIcon className="absolute -left-16 -top-16 w-64 h-64 text-dogroom-primary/30 transform-gpu rotate-12" />
-          <PawIcon className="absolute -right-20 bottom-0 w-80 h-80 text-dogroom-accent/30 transform-gpu -rotate-12" />
-        </div>
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.2 }}
+            transition={{ duration: 1 }}
+            className="absolute inset-0 z-0"
+          >
+            <PawIcon className="absolute -left-16 -top-16 w-64 h-64 text-dogroom-primary/30 transform-gpu rotate-12 animate-float" />
+            <PawIcon className="absolute -right-20 bottom-0 w-80 h-80 text-dogroom-accent/30 transform-gpu -rotate-12 animate-float [animation-delay:-1.5s]" />
+          </motion.div>
+        </AnimatePresence>
       </header>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-16 md:py-24">
@@ -88,10 +98,38 @@ export function HomePage() {
               Meet some of our most loved and trusted dog sitters in your area.
             </p>
           </div>
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {isLoading
-              ? Array.from({ length: 4 }).map((_, i) => <HostCardSkeleton key={i} />)
-              : hostsResponse?.items.map((host) => <HostCard key={host.id} host={host} />)}
+          <div className="mt-12">
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                {Array.from({ length: 4 }).map((_, i) => <HostCardSkeleton key={i} />)}
+              </div>
+            ) : isError || hosts.length === 0 ? (
+              <EmptyState
+                title="No Hosts Found"
+                description="We couldn't find any hosts right now. Please check back later!"
+              />
+            ) : (
+              <motion.div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  visible: { transition: { staggerChildren: 0.1 } },
+                }}
+              >
+                {hosts.map((host) => (
+                  <motion.div
+                    key={host.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 20 },
+                      visible: { opacity: 1, y: 0 },
+                    }}
+                  >
+                    <HostCard host={host} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
           </div>
           <div className="mt-12 text-center">
             <Button size="lg" asChild className="bg-dogroom-accent hover:bg-dogroom-accent/90 text-dogroom-ink font-bold">
