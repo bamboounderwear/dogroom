@@ -1,6 +1,6 @@
 # DogRoom
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/bamboounderwear/dogroom)
 
 DogRoom is an Airbnb-style marketplace that connects dog owners with trusted local sitters (hosts). Owners can search for sitters by date, location, and pet needs, while hosts list their spaces, availability, services (boarding, daycare, walks), photos, prices, and house rules. The platform emphasizes trust through host profiles, reviews, and verifications. Built as a serverless frontend with Cloudflare Workers and a single Durable Object for storage, it delivers a beautiful, playful, mobile-first experience.
 
@@ -128,7 +128,7 @@ Deploy to Cloudflare Workers for global edge performance. No servers required.
    - Worker URL: Provided by Wrangler (e.g., `https://dogroom.youraccount.workers.dev`).
    - Custom domain: Configure in Wrangler or Cloudflare dashboard.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/bamboounderwear/dogroom)
 
 ### Environment Variables
 Set via Wrangler secrets or dashboard:
